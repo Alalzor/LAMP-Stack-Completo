@@ -1,8 +1,20 @@
 FROM php:8.2-apache
 
+# Copy Apache configurations
 COPY my-httpd.conf /etc/apache2/sites-available/000-default.conf
+COPY ssl-site.conf /etc/apache2/sites-available/default-ssl.conf
+COPY security.ini /usr/local/etc/php/conf.d/security.ini
 
-RUN a2enmod rewrite
+# Enable Apache modules for security and SSL
+RUN a2enmod rewrite headers ssl
 
-# Instalar extensiones de PHP necesarias para MySQL
+# Enable SSL site
+RUN a2ensite default-ssl
+
+# Install PHP extensions needed for MySQL
 RUN docker-php-ext-install pdo pdo_mysql mysqli
+
+# Install curl for healthchecks
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*

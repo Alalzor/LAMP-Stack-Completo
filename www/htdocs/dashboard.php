@@ -1,6 +1,24 @@
 <?php
-require_once 'config.php';
-requireLogin();
+// Validar método HTTP permitido
+$allowed_methods = ['GET', 'POST', 'HEAD'];
+if (!in_array($_SERVER['REQUEST_METHOD'], $allowed_methods)) {
+    header('HTTP/1.1 405 Method Not Allowed');
+    header('Allow: ' . implode(', ', $allowed_methods));
+    exit('Method Not Allowed');
+}
+
+session_start();
+
+// Verificación simple de login
+if (!isset($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit;
+}
+
+// Función simple para escape
+function escape($string) {
+    return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
+}
 ?>
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
@@ -16,9 +34,9 @@ requireLogin();
             <a class="navbar-brand" href="#">Project Delta</a>
             <div class="navbar-nav ms-auto">
                 <span class="navbar-text me-3">
-                    Bienvenido, <?php echo htmlspecialchars($_SESSION['user_name']); ?>
+                    Welcome, <?php echo isset($_SESSION['user_name']) ? escape($_SESSION['user_name']) : 'User'; ?>
                 </span>
-                <a href="logout.php" class="btn btn-outline-light btn-sm">Cerrar Sesión</a>
+                <a href="logout.php" class="btn btn-outline-light btn-sm">Logout</a>
             </div>
         </div>
     </nav>
@@ -29,12 +47,12 @@ requireLogin();
                 <h1>Dashboard</h1>
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">¡Bienvenido al sistema!</h5>
+                        <h5 class="card-title">Welcome to the system!</h5>
                         <p class="card-text">
-                            Has iniciado sesión correctamente como: <strong><?php echo htmlspecialchars($_SESSION['user_email']); ?></strong>
+                            You have successfully logged in as: <strong><?php echo isset($_SESSION['user_email']) ? escape($_SESSION['user_email']) : 'Unknown'; ?></strong>
                         </p>
                         <p class="card-text">
-                            <small class="text-muted">ID de usuario: <?php echo $_SESSION['user_id']; ?></small>
+                            <small class="text-muted">User ID: <?php echo isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 'N/A'; ?></small>
                         </p>
                     </div>
                 </div>

@@ -1,4 +1,16 @@
 
+<?php
+// Validar método HTTP permitido
+$allowed_methods = ['GET', 'POST', 'HEAD'];
+if (!in_array($_SERVER['REQUEST_METHOD'], $allowed_methods)) {
+    header('HTTP/1.1 405 Method Not Allowed');
+    header('Allow: ' . implode(', ', $allowed_methods));
+    exit('Method Not Allowed');
+}
+
+session_start();
+require_once 'config.php';
+?>
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
 <head>

@@ -1,29 +1,47 @@
 <?php
-// Configuración de la base de datos
+// Configuración de sesiones (mejorada para HTTPS)
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_secure', 1); // Habilitar para HTTPS
+ini_set('session.use_strict_mode', 1);
+
+// Database configuration
 $host = $_ENV['DB_HOST'] ?? 'db';
 $dbname = $_ENV['DB_NAME'] ?? 'projecto';
 $username = $_ENV['DB_USER'] ?? 'webapp';
-$password = $_ENV['DB_PASSWORD'] ?? 'webpassword';
+$password = $_ENV['DB_PASSWORD'] ?? 'WebAppSecure123'; // Use correct password as fallback
 
+$pdo = null; // Initialize as null
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+        PDO::MYSQL_ATTR_FOUND_ROWS => true
+    ]);
 } catch (PDOException $e) {
-    die("Error de conexión: " . $e->getMessage());
+    error_log("Database connection error: " . $e->getMessage());
+    // Don't die - just log the error and continue without database
+    $pdo = null;
 }
 
-// Función para verificar si el usuario está logueado
+// Function to check if user is logged in
 function isLoggedIn() {
-    session_start();
+    if (session_status() == PHP_SESSION_NONE) {
+        session_start();
+    }
     return isset($_SESSION['user_id']);
 }
 
-// Función para redirigir si no está logueado
+// Function to redirect if not logged in
 function requireLogin() {
     if (!isLoggedIn()) {
         header('Location: index.php');
         exit;
     }
+}
+
+// Function to escape HTML output
+function escape($string) {
+    return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
 }
 ?>
