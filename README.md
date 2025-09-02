@@ -27,7 +27,7 @@ cd LAMP-Stack-Completo
 
 ### 2. Configure environment variables
 ```bash
-cp .env.example .env
+nano .env 
 # Edit .env with your credentials
 ```
 
