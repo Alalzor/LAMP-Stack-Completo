@@ -1,9 +1,4 @@
 <?php
-// Configuración de sesiones (mejorada para HTTPS)
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_secure', 1); // Habilitar para HTTPS
-ini_set('session.use_strict_mode', 1);
-
 // Database configuration
 $host = $_ENV['DB_HOST'] ?? 'db';
 $dbname = $_ENV['DB_NAME'] ?? 'projecto';

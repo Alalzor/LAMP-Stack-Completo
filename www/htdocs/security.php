@@ -1,54 +1,99 @@
 <?php
 /**
- * Security monitoring and logging functions
+ * Security functions for CSRF protection and threat detection
  */
+
+/**
+ * Generate or retrieve existing CSRF token
+ * @return string
+ */
+function generateCSRFToken() {
+    if (!isset($_SESSION['csrf_token']) || empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        $_SESSION['csrf_token_time'] = time();
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Validate CSRF token
+ * @param string $token
+ * @return bool
+ */
+function validateCSRFToken($token) {
+    // Check if token exists in session
+    if (!isset($_SESSION['csrf_token']) || empty($_SESSION['csrf_token'])) {
+        logSecurityEvent('CSRF_ERROR', 'No CSRF token in session');
+        return false;
+    }
+    
+    // Check if token matches (timing-safe comparison)
+    if (!hash_equals($_SESSION['csrf_token'], $token)) {
+        logSecurityEvent('CSRF_VIOLATION', 'Invalid CSRF token provided');
+        return false;
+    }
+    
+    // Check token age (max 1 hour)
+    if (isset($_SESSION['csrf_token_time'])) {
+        $token_age = time() - $_SESSION['csrf_token_time'];
+        if ($token_age > 3600) { // 1 hour
+            logSecurityEvent('CSRF_EXPIRED', 'CSRF token expired');
+            unset($_SESSION['csrf_token'], $_SESSION['csrf_token_time']);
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+/**
+ * Regenerate CSRF token (call after successful login)
+ */
+function regenerateCSRFToken() {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    $_SESSION['csrf_token_time'] = time();
+}
 
 /**
  * Log security events
  * @param string $event_type
  * @param string $details
- * @param string $ip_address
  */
-function logSecurityEvent($event_type, $details, $ip_address = null) {
-    if ($ip_address === null) {
-        $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-    }
-    
+function logSecurityEvent($event_type, $details) {
     $timestamp = date('Y-m-d H:i:s');
+    $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
     
     $log_entry = "[{$timestamp}] [{$event_type}] IP: {$ip_address} | Details: {$details} | User-Agent: {$user_agent}" . PHP_EOL;
     
-    // Log to file (in production, consider using a proper logging system)
+    // Log to security file
     error_log($log_entry, 3, '/var/log/apache2/security.log');
 }
 
 /**
- * Detect potential security threats
+ * Detect potential security threats in form data
  * @param array $request_data
  * @return array
  */
 function detectThreats($request_data) {
     $threats = [];
     
-    // Check for SQL injection patterns
-    $sql_patterns = [
-        '/union\s+select/i',
-        '/drop\s+table/i',
-        '/insert\s+into/i',
-        '/delete\s+from/i',
-        '/update\s+.*set/i',
-        '/script.*src/i',
-        '/<script/i',
-        '/javascript:/i'
+    // Common injection patterns
+    $patterns = [
+        'sql' => ['/union\s+select/i', '/drop\s+table/i', '/insert\s+into/i', '/delete\s+from/i'],
+        'xss' => ['/script.*src/i', '/<script/i', '/javascript:/i', '/on\w+\s*=/i'],
+        'path' => ['/\.\.\//i', '/etc\/passwd/i', '/proc\/self/i']
     ];
     
     foreach ($request_data as $key => $value) {
         if (is_string($value)) {
-            foreach ($sql_patterns as $pattern) {
-                if (preg_match($pattern, $value)) {
-                    $threats[] = "Potential {$key} injection detected: " . substr($value, 0, 100);
-                    logSecurityEvent('THREAT_DETECTED', "Injection attempt in {$key}");
+            foreach ($patterns as $type => $pattern_list) {
+                foreach ($pattern_list as $pattern) {
+                    if (preg_match($pattern, $value)) {
+                        $threats[] = "Potential {$type} injection in {$key}: " . substr($value, 0, 50) . '...';
+                        logSecurityEvent('THREAT_DETECTED', "Injection attempt in {$key}");
+                        break 2; // Exit both loops for this value
+                    }
                 }
             }
         }
@@ -58,70 +103,17 @@ function detectThreats($request_data) {
 }
 
 /**
- * Check for suspicious IP behavior
+ * Basic IP monitoring (simplified version)
  * @param string $ip_address
  * @return bool
  */
 function isIPSuspicious($ip_address) {
-    // In a real application, you might check against:
-    // - Known blacklists
-    // - Rate limiting by IP
-    // - Geographic restrictions
-    // - Tor exit nodes
-    
-    // For now, just check basic patterns
-    $suspicious_patterns = [
-        '/^10\./',      // Private networks trying external access
-        '/^172\.16/',   // Private networks
-        '/^192\.168/',  // Private networks (if accessed externally)
-    ];
-    
-    foreach ($suspicious_patterns as $pattern) {
-        if (preg_match($pattern, $ip_address)) {
-            return true;
-        }
+    // For development purposes, just log the access
+    // In production, implement proper IP filtering
+    if ($ip_address !== '127.0.0.1' && !preg_match('/^172\.20\./', $ip_address)) {
+        logSecurityEvent('EXTERNAL_ACCESS', "Access from external IP: {$ip_address}");
     }
     
-    return false;
-}
-
-/**
- * Validate file upload for security
- * @param array $file
- * @return array
- */
-function validateFileUpload($file) {
-    $errors = [];
-    
-    if (!isset($file['tmp_name']) || empty($file['tmp_name'])) {
-        return ['No file uploaded'];
-    }
-    
-    // Check file size (2MB max)
-    if ($file['size'] > 2097152) {
-        $errors[] = 'File too large (max 2MB)';
-    }
-    
-    // Check file type
-    $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
-    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-    $detected_type = finfo_file($finfo, $file['tmp_name']);
-    finfo_close($finfo);
-    
-    if (!in_array($detected_type, $allowed_types)) {
-        $errors[] = 'File type not allowed';
-        logSecurityEvent('ILLEGAL_UPLOAD', "Attempt to upload {$detected_type}");
-    }
-    
-    // Check for embedded scripts in images
-    if (strpos($detected_type, 'image/') === 0) {
-        $content = file_get_contents($file['tmp_name']);
-        if (preg_match('/<script|javascript:|php|<?php/i', $content)) {
-            $errors[] = 'Malicious content detected in image';
-            logSecurityEvent('MALICIOUS_UPLOAD', 'Script content in image file');
-        }
-    }
-    
-    return $errors;
+    return false; // Don't block any IPs for now
 }
 ?>

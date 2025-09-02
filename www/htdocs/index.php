@@ -1,4 +1,3 @@
-
 <?php
 // Validar método HTTP permitido
 $allowed_methods = ['GET', 'POST', 'HEAD'];
@@ -8,8 +7,15 @@ if (!in_array($_SERVER['REQUEST_METHOD'], $allowed_methods)) {
     exit('Method Not Allowed');
 }
 
+// Configure and start session
+require_once 'session_config.php';
 session_start();
+
 require_once 'config.php';
+require_once 'security.php';
+
+// Generate CSRF token
+$csrf_token = generateCSRFToken();
 ?>
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
@@ -46,6 +52,7 @@ require_once 'config.php';
 <body class="d-flex align-items-center justify-content-center min-vh-100 bg-body-tertiary">
     <main class="form-signin">
         <form method="POST" action="login.php">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
             <h1 class="h3 mb-3 fw-normal text-center">Project Delta</h1>
             
             <?php if (isset($_GET['error'])): ?>
