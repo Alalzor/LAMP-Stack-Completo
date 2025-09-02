@@ -1,0 +1,27 @@
+# Archivos de configuración sensibles
+.env
+.env.local
+.env.production
+
+# Datos de la base de datos
+mysql_data/
+*.sql.backup
+
+# Logs y archivos temporales
+*.log
+logs/
+tmp/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Archivos de Docker
+docker-compose.override.yml

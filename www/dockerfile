@@ -1,0 +1,8 @@
+FROM php:8.2-apache
+
+COPY my-httpd.conf /etc/apache2/sites-available/000-default.conf
+
+RUN a2enmod rewrite
+
+# Instalar extensiones de PHP necesarias para MySQL
+RUN docker-php-ext-install pdo pdo_mysql mysqli
