@@ -22,7 +22,7 @@ cd LAMP-Stack-Completo
 
 ### 2. Configure environment variables
 ```bash
-cp .env.example .env
+nano .env 
 # Edit .env with your credentials
 ```
 
@@ -63,7 +63,7 @@ LAMP-Stack-Completo/
 │   ├── dockerfile        # MySQL image
 │   └── init.sql          # Database initialization
 ├── docker-compose.yml    # Service orchestration
-├── .env.example          # Environment variables template
+├── .env                  # Environment variables template
 └── .gitignore           # Git excluded files
 ```
 
