@@ -11,10 +11,21 @@ RUN a2enmod rewrite headers ssl
 # Enable SSL site
 RUN a2ensite default-ssl
 
-# Install PHP extensions needed for MySQL
-RUN docker-php-ext-install pdo pdo_mysql mysqli
-
-# Install curl for healthchecks
+# Install PHP extensions and tools in one layer for better caching
 RUN apt-get update && apt-get install -y \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    zip \
+    unzip \
+    && docker-php-ext-install pdo pdo_mysql mysqli \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Enable OPcache for better PHP performance
+RUN docker-php-ext-install opcache
+
+# Copy optimized PHP configuration
+COPY php-optimization.ini /usr/local/etc/php/conf.d/optimization.ini
+
+# Set proper permissions and ownership
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html

@@ -1,8 +1,11 @@
 FROM mysql:8.0
 
+# Copy initialization script and optimizations
 COPY ./init.sql /docker-entrypoint-initdb.d/
+COPY ./mysql-optimization.cnf /etc/mysql/conf.d/optimization.cnf
 
+# Set default environment (will be overridden by docker-compose)
 ENV MYSQL_ROOT_PASSWORD=rootpassword
-ENV MYSQL_DATABASE=projecto
+ENV MYSQL_DATABASE=empresa
 ENV MYSQL_USER=webapp
 ENV MYSQL_PASSWORD=webpassword

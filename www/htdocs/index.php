@@ -80,8 +80,8 @@ $csrf_token = generateCSRFToken();
             
             <p class="mt-3 mb-3 text-body-secondary text-center">
                 <small>Usuarios de prueba:<br>
-                admin@projectdelta.local / admin123<br>
-                user@projectdelta.local / admin123</small>
+                admin@projectdelta.local / password<br>
+                cto@projectdelta.local / password</small>
             </p>
             
             <p class="mt-5 mb-3 text-body-secondary text-center">© 2025 Project Delta</p>

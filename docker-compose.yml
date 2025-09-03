@@ -9,17 +9,19 @@ services:
       - ./www/htdocs:/var/www/html
       - ./ssl:/etc/ssl/projectdelta:ro
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       - DB_HOST=db
       - DB_USER=${MYSQL_USER}
       - DB_PASSWORD=${MYSQL_PASSWORD}
       - DB_NAME=${MYSQL_DATABASE}
+      - PHP_OPCACHE_ENABLE=1
     networks:
       - web_network
       - db_network
     healthcheck:
-      test: ["CMD", "curl", "-k", "-f", "https://localhost/index.php", "||", "exit", "1"]
+      test: ["CMD", "curl", "-f", "http://localhost/index.php", "||", "exit", "1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -28,7 +30,7 @@ services:
       resources:
         limits:
           memory: 512M
-          cpus: '0.5'
+          cpus: '0.75'
         reservations:
           memory: 256M
           cpus: '0.25'
@@ -46,6 +48,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./bdd/mysql-optimization.cnf:/etc/mysql/conf.d/optimization.cnf:ro
     networks:
       - db_network
     healthcheck:
